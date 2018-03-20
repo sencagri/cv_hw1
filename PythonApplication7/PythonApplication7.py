@@ -1,4 +1,5 @@
 import cv2
+import math
 from array import array
 import numpy as np
 
@@ -14,8 +15,8 @@ def mergeImages(img1, img2, scale=1):
 
     # scale the image if scale is set between 0..1
     if(scale > 0 and scale<1):
-        img1 = cv2.resize(imga, scale)
-        img2 = cv2.resize(imgb, scale)
+        img1 = cv2.resize(img1, scale)
+        img2 = cv2.resize(img2, scale)
 
     result = np.concatenate((img1, img2), axis=1)
     return result
@@ -50,15 +51,15 @@ def histEqualizeOpencv(srcImg):
 
 def histEqualize(srcImg):
     grayImg = cv2.cvtColor(srcImg, cv2.COLOR_BGR2GRAY)
-    hist = cv2.calcHist(grayImg, [0], None, [256], [0,256])
-    histCDF = np.zeros((1,256), "float")
-    for i in np.arange(hist.shape[0]):
-        val = 0.0
-        for j in np.arange(hist.shape[0]):
-            val += hist[j]
-        histCDF[i] = val / 256.0
-    histLUT = np.array([math.floor(i * 256)])
-    return hist
+    hist,f = np.histogram(grayImg, 256)
+    # find the probablity of intensity values
+    hist = hist / (grayImg.shape[0] * grayImg.shape[1])
+    # find cdf of the funct
+    histCDF = np.cumsum(hist) * (255.0 )
+    # convert to int for lookup-table operation
+    histCDF = histCDF.astype("uint8")
+    
+    return cv2.LUT(grayImg, histCDF)
 
 # Read the test image
 org = cv2.imread("testimg.png")
@@ -106,7 +107,10 @@ equalizedLowManual = histEqualize(darkImagewithLowGamma)
 plot7 = mergeImages(equalizedDark,equalizedLow)
 plot7 = mergeImages(org2,plot7)
 
-cv2.imshow("hist equalized image", plot7)
+plot8 = mergeImages(equalizedDarkManual, equalizedLowManual)
+plot8 = mergeImages(org2, plot8)
+
+cv2.imshow("manually hist equalized image", plot8)
 
 #cv2.imshow("Light image with high gamma",plot3)
 #cv2.imshow("Light image with low gamma",plot4)
