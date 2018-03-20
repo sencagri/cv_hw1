@@ -61,10 +61,20 @@ def histEqualize(srcImg):
     
     return cv2.LUT(grayImg, histCDF)
 
+def zoomByFactor(srcImg, factor):
+    return cv2.resize(srcImg, None,fx=factor, fy=factor)
+
+def applyFilter(srcImg, kernel):
+    return cv2.filter2D(srcImg, -1, kernel)
+
 # Read the test image
 org = cv2.imread("testimg.png")
 org2 = cv2.imread("testimg2.jpg")
 org3 = cv2.imread("testimg3.jpg")
+
+kernel = np.ones((5,5), dtype="int") / 25
+testImg = applyFilter(org, kernel)
+cv2.imshow("test", testImg)
 
 org2 = cv2.resize(org2, (0,0), fx=0.25, fy=0.25)
 org3 = cv2.resize(org3, (0,0), fx=0.25, fy=0.25)
