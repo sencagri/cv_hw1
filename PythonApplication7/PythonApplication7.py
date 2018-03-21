@@ -9,7 +9,7 @@ def mergeImages(img1, img2, scale=1):
     img2Shape = len(img2.shape)
 
     if(img1Shape==2):
-        img1 = cv2. cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
+       img1 = cv2. cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
     if(img2Shape==2):
         img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
 
@@ -28,14 +28,16 @@ def conv2GrayScaleOpencv(srcImg):
 
 def conv2GrayScale(srcImg):
     # as suggested in ref link ( ref : http://www.robindavid.fr/opencv-tutorial/chapter3-pixel-access-and-matrix-iteration.html )
-    width = np.arange(0, srcImg.shape[0])
-    height =np.arange(0, srcImg.shape[1])
-    shape = (width, height)
+    width = srcImg.shape[0]
+    heigth = srcImg.shape[1]
+    widthRange = np.arange(0, width)
+    heightRange =np.arange(0, heigth)
+    shape = (width, heigth)
     
     result = np.zeros(shape, dtype="uint8")
     
-    for i in width:
-        for j in height:
+    for i in widthRange:
+        for j in heightRange:
             val = srcImg[i,j][0] * 0.11 + srcImg[i,j][1] * 0.59 + srcImg[i,j][2] * 0.3
             result[i,j] = val
     return result
@@ -51,6 +53,7 @@ def histEqualizeOpencv(srcImg):
 
 def histEqualize(srcImg):
     grayImg = cv2.cvtColor(srcImg, cv2.COLOR_BGR2GRAY)
+    
     hist,f = np.histogram(grayImg, 256)
     # find the probablity of intensity values
     hist = hist / (grayImg.shape[0] * grayImg.shape[1])
@@ -58,8 +61,9 @@ def histEqualize(srcImg):
     histCDF = np.cumsum(hist) * (255.0 )
     # convert to int for lookup-table operation
     histCDF = histCDF.astype("uint8")
+    #histCDF = np.array([math.floor(i) for i in histCDF]).reshape(histCDF.shape)
     
-    return cv2.LUT(grayImg, histCDF)
+    return histCDF[grayImg]
 
 def zoomByFactor(srcImg, factor):
     return cv2.resize(srcImg, None,fx=factor, fy=factor)
@@ -70,24 +74,23 @@ def applyFilter(srcImg, kernel):
 # Read the test image
 org = cv2.imread("testimg.png")
 org2 = cv2.imread("testimg2.jpg")
-org3 = cv2.imread("testimg3.jpg")
+org3 = cv2.imread("test2.tif")
+#org = cv2.resize(org, None, fx=0.1, fy=0.1)
 
-kernel = np.ones((5,5), dtype="int") / 25
-testImg = applyFilter(org, kernel)
-cv2.imshow("test", testImg)
-
-org2 = cv2.resize(org2, (0,0), fx=0.25, fy=0.25)
-org3 = cv2.resize(org3, (0,0), fx=0.25, fy=0.25)
-
+org3 = cv2.resize(org3, None, fx = 0.4, fy=0.4)
+org2 = cv2.resize(org2, None, fx = 0.4, fy=0.4)
 
 # Q1 - convert to grayscale of the image by opencv and manually written code
-grayImg = conv2GrayScale(org)
-grayImgOpencv = conv2GrayScaleOpencv(org)
-plot = mergeImages(org,grayImg)
-plot2 = mergeImages(org, grayImgOpencv)
+grayImg = conv2GrayScale(org3)
+grayImgOpencv = conv2GrayScaleOpencv(org3)
+plot = mergeImages(org3,grayImg)
+plot2 = mergeImages(plot, grayImgOpencv)
 
-#cv2.imshow("Q1 - Original vs. manually written",plot);
+#cv2.imshow("Q1 - Original vs. manually written gray scale conversion",plot2);
 #cv2.imshow("Q1 - Original vs. opencv available method",plot2);
+
+cv2.waitKey()
+cv2.destroyAllWindows()
 
 # Q2 - apply power law transformation to dark and light images
 lightImagewithHighGamma = gammaCorr(org3, 2)
@@ -102,32 +105,22 @@ cv2.putText(darkImagewithHighGamma, "gamma:2",(10,20),cv2.FONT_HERSHEY_COMPLEX_S
 darkImagewithLowGamma = gammaCorr(org2, 0.5)
 cv2.putText(darkImagewithLowGamma, "gamma:0.5",(10,20),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(0,0,255))
 
-plot3 = mergeImages(org3, lightImagewithHighGamma)
-plot4 = mergeImages(org3, lightImagewithLowGamma)
+plot3 = mergeImages( mergeImages(histEqualizeOpencv(lightImagewithHighGamma), histEqualize(lightImagewithHighGamma)) , mergeImages(histEqualizeOpencv(lightImagewithLowGamma), histEqualize(lightImagewithLowGamma)))
+plot4 = mergeImages(cv2.cvtColor(org3, cv2.COLOR_BGR2GRAY), plot3)
 
-plot5 = mergeImages(org2, darkImagewithHighGamma)
-plot6 = mergeImages(org2, darkImagewithLowGamma)
+plot5 = mergeImages( mergeImages(histEqualizeOpencv(darkImagewithHighGamma), histEqualize(darkImagewithHighGamma))  ,  mergeImages(histEqualizeOpencv(darkImagewithLowGamma), histEqualize(darkImagewithLowGamma)))
+plot6 = mergeImages(org2, plot5)
 
-equalizedDark = histEqualizeOpencv(darkImagewithHighGamma)
-equalizedLow = histEqualizeOpencv(darkImagewithLowGamma)
+kernel = np.ones((5,5)) /25 
+kernel2 = np.array([1, 1, 1, 1, -4, 1, 1, 1, 1]).reshape((3,3))
+plot7 = applyFilter(org, kernel)
+plot8 = applyFilter(org, kernel2)
 
-equalizedDarkManual = histEqualize(darkImagewithHighGamma)
-equalizedLowManual = histEqualize(darkImagewithLowGamma)
 
-plot7 = mergeImages(equalizedDark,equalizedLow)
-plot7 = mergeImages(org2,plot7)
+cv2.imshow("Q5", zoomByFactor(org, 0.12))
+cv2.waitKey()
+cv2.destroyAllWindows()
 
-plot8 = mergeImages(equalizedDarkManual, equalizedLowManual)
-plot8 = mergeImages(org2, plot8)
 
-cv2.imshow("manually hist equalized image", plot8)
-
-#cv2.imshow("Light image with high gamma",plot3)
-#cv2.imshow("Light image with low gamma",plot4)
-#cv2.imshow("Dark image with high gamma",plot5)
-#cv2.imshow("Dark image with low gamma",plot6)
-
-cv2.waitKey();
-cv2.destroyAllWindows();
 
 
