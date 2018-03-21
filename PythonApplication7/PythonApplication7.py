@@ -28,14 +28,14 @@ def conv2GrayScaleOpencv(srcImg):
 
 def conv2GrayScale(srcImg):
     # as suggested in ref link ( ref : http://www.robindavid.fr/opencv-tutorial/chapter3-pixel-access-and-matrix-iteration.html )
-    width = srcImg.shape[0]
-    height = srcImg.shape[1]
+    width = np.arange(0, srcImg.shape[0])
+    height =np.arange(0, srcImg.shape[1])
     shape = (width, height)
     
     result = np.zeros(shape, dtype="uint8")
-
-    for i in np.arange(0, width):
-        for j in np.arange(0, height):
+    
+    for i in width:
+        for j in height:
             val = srcImg[i,j][0] * 0.11 + srcImg[i,j][1] * 0.59 + srcImg[i,j][2] * 0.3
             result[i,j] = val
     return result
